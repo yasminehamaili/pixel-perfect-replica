@@ -111,3 +111,4 @@ app.post("/api/documents/:id/chat", async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3001, () => console.log("API running on port", process.env.PORT || 3001));
+app.use(cors());

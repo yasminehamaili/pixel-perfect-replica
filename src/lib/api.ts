@@ -84,7 +84,7 @@ export type ChatMessage = {
   content: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 /** Maps frontend route department slugs to the 5 backend schema keys. */
 export function resolveBackendDepartment(department: string): BackendDepartmentKey | null {
