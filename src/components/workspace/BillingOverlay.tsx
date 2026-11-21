@@ -41,7 +41,9 @@ function PlanCard({
       </h3>
       <p className="mt-1 min-h-[3rem] text-sm text-muted-foreground">{t(plan.descriptionKey)}</p>
 
-      <p className="mt-5 text-3xl font-bold tracking-tight text-foreground">{formatNumber(price)} DZD</p>
+      <p className="mt-5 text-3xl font-bold tracking-tight text-foreground">
+        {formatNumber(price)} DZD
+      </p>
       <p className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground">
         {period === "monthly"
           ? t("billing.perMonth")
@@ -95,7 +97,9 @@ export function BillingOverlay({
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("billing.title")}</DialogPrimitive.Title>
-          <DialogPrimitive.Description className="sr-only">{t("billing.title")}</DialogPrimitive.Description>
+          <DialogPrimitive.Description className="sr-only">
+            {t("billing.title")}
+          </DialogPrimitive.Description>
 
           <DialogPrimitive.Close
             aria-label={t("billing.close")}
@@ -135,7 +139,13 @@ export function BillingOverlay({
 
           <div className="grid gap-4 md:grid-cols-3">
             {PLANS.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} period={period} t={t} formatNumber={formatNumber} />
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                period={period}
+                t={t}
+                formatNumber={formatNumber}
+              />
             ))}
           </div>
         </DialogPrimitive.Content>
