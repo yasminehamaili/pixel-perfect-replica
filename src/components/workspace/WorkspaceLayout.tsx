@@ -7,6 +7,8 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { isDepartmentAccessible, type DepartmentId } from "@/config/workspace";
 import { useT } from "@/i18n/I18nProvider";
 import { AccountSidebar } from "./AccountSidebar";
+import { ChatbotWidget } from "./ChatbotWidget";
+import { DashboardView } from "./DashboardView";
 import { ImportDialog } from "./ImportDialog";
 import { InaccessibleState } from "./InaccessibleState";
 import { ReportOverlay } from "./ReportOverlay";
@@ -33,13 +35,8 @@ export function WorkspaceLayout({ department }: { department: DepartmentId }) {
           onOpenAccount={() => setAccountOpen(true)}
         />
         {accessible ? (
-          <div className="mx-auto flex w-full max-w-(--layout-main-max) flex-col gap-4 p-(--layout-gutter)">
-            <section
-              aria-label={t("dashboard.placeholder")}
-              className="flex h-(--layout-dashboard) items-center justify-center rounded-xl border border-dashed bg-card/60 text-sm text-muted-foreground"
-            >
-              {t("dashboard.placeholder")}
-            </section>
+          <div className="mx-auto flex w-full max-w-(--layout-main-max) flex-col gap-4 p-(--layout-gutter) pb-24">
+            <DashboardView department={department} onOpenImport={() => setImportOpen(true)} />
             <div className="flex justify-end">
               <Button variant="toolbar" size="toolbar" onClick={() => setReportOpen(true)}>
                 <FileText aria-hidden />
@@ -65,6 +62,7 @@ export function WorkspaceLayout({ department }: { department: DepartmentId }) {
         <>
           <ImportDialog open={importOpen} onOpenChange={setImportOpen} department={department} />
           <ReportOverlay open={reportOpen} onOpenChange={setReportOpen} department={department} />
+          <ChatbotWidget department={department} />
         </>
       )}
       <DocsOverlay open={docsOpen} onOpenChange={setDocsOpen} />

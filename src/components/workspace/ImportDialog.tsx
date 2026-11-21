@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from "react";
-import { FileSpreadsheet, UploadCloud } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileSpreadsheet, Loader2, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { FileStatusBadge } from "./FileStatusBadge";
 import { useWorkspace } from "./WorkspaceProvider";
 
-/** Mock matcher: guesses which required input a file is, from its name. */
 export function matchRequiredFile(
   fileName: string,
   files: Record<RequiredFileId, FileStatus>,
@@ -30,26 +29,35 @@ export function ImportDialog({
   department: DepartmentId;
 }) {
   const t = useT();
-  const { files, markUploaded } = useWorkspace();
+  const { files, markUploaded, uploadAndAnalyze, uploading, uploadError, doc } = useWorkspace();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const handleFiles = (list: FileList | null) => {
-    if (!list) return;
+  const handleFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
     let current = { ...files };
-    for (const file of Array.from(list)) {
+    const fileArray = Array.from(list);
+
+    for (const file of fileArray) {
       const id = matchRequiredFile(file.name, current);
       if (id) {
         current = { ...current, [id]: "uploaded" };
         markUploaded(id);
       }
     }
+
+    // Send the first uploaded file to the backend LLM extraction pipeline
+    try {
+      await uploadAndAnalyze(fileArray[0]);
+    } catch {
+      // Error is displayed via uploadError in workspace state
+    }
   };
 
   const onDrop = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setDragging(false);
-    handleFiles(e.dataTransfer.files);
+    void handleFiles(e.dataTransfer.files);
   };
 
   return (
@@ -71,30 +79,58 @@ export function ImportDialog({
             "flex flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/50 p-6 text-center transition-colors",
             "focus-within:border-ring hover:border-ring",
             dragging && "border-primary bg-accent",
+            uploading && "pointer-events-none opacity-70",
           )}
         >
           <div className="flex size-12 items-center justify-center rounded-full bg-card shadow-card">
-            <UploadCloud className="size-6 text-primary" aria-hidden />
+            {uploading ? (
+              <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
+            ) : (
+              <UploadCloud className="size-6 text-primary" aria-hidden />
+            )}
           </div>
           <div>
-            <div className="text-sm font-medium">{t("import.dropTitle")}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{t("import.dropHint")}</div>
+            <div className="text-sm font-medium">
+              {uploading ? "Analyzing document with AI..." : t("import.dropTitle")}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Supported: PDF, DOCX, CSV, TXT, MD (max 20 MB)
+            </div>
           </div>
-          <span className="inline-flex h-8 items-center rounded-md border bg-card px-3 text-xs font-medium shadow-card">
-            {t("import.browse")}
-          </span>
+          {!uploading && (
+            <span className="inline-flex h-8 items-center rounded-md border bg-card px-3 text-xs font-medium shadow-card">
+              {t("import.browse")}
+            </span>
+          )}
           <input
             ref={inputRef}
             type="file"
             multiple
-            accept=".csv,.xlsx,.xls"
+            accept=".pdf,.docx,.txt,.csv,.md"
             className="sr-only"
+            disabled={uploading}
             onChange={(e) => {
-              handleFiles(e.target.files);
+              void handleFiles(e.target.files);
               e.target.value = "";
             }}
           />
         </label>
+
+        {uploadError && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{uploadError}</span>
+          </div>
+        )}
+
+        {doc && !uploading && !uploadError && (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="size-4 shrink-0" />
+            <span>
+              Analyzed <strong>{doc.filename}</strong> — dashboard is ready.
+            </span>
+          </div>
+        )}
 
         <section>
           <h3 className="eyebrow mb-2">{t("import.requiredFiles")}</h3>
@@ -110,7 +146,9 @@ export function ImportDialog({
         </section>
 
         <div className="flex justify-end">
-          <Button onClick={() => onOpenChange(false)}>{t("import.done")}</Button>
+          <Button onClick={() => onOpenChange(false)} disabled={uploading}>
+            {t("import.done")}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
