@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+- Design values (colors, fonts, radii, layout sizes) live only in `src/styles.css` `:root`/`.dark` tokens; components use token utilities so exact Figma values can be dropped in one place.
+- All UI strings go through `useT()` with keys in `src/i18n/dictionary.ts` (en + fr); a test fails if a French key is missing.
+- Department pages are one dynamic route `src/routes/$department.tsx` validated against `DEPARTMENT_IDS` in `src/config/workspace.ts`; mock data and dev flags (e.g. `DEV_PREVIEW_INACCESSIBLE`, `API_KEY_PLACEHOLDER`) live there too.
+- Report content comes only from `generateReport()` in `src/lib/report.ts` (the AI plug-in point); docs content only from Markdown in `src/docs/pages` registered in `src/docs/index.ts`.

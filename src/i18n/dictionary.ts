@@ -1,0 +1,208 @@
+export const LANGUAGES = ["en", "fr"] as const;
+export type Language = (typeof LANGUAGES)[number];
+
+const en = {
+  "brand.name": "NORTHSTAR",
+  "brand.subtitle": "FINANCE WORKSPACE",
+
+  "nav.section": "Departments",
+  "nav.overview": "Overview",
+  "nav.sales": "Sales",
+  "nav.production": "Production",
+  "nav.stock": "Stock",
+  "nav.supply": "Supply",
+  "nav.finance": "Finance",
+  "nav.helpCenter": "Help Center",
+  "nav.settings": "Settings",
+  "nav.primary": "Primary",
+
+  "top.dateRange": "Date range",
+  "top.vsPrevious": "vs previous period ({range})",
+  "top.reimport": "Re-import",
+  "top.notifications": "Notifications",
+  "top.unread": "You have unread notifications",
+  "top.openAccount": "Open account panel",
+
+  "date.presets": "Presets",
+  "date.last7": "Last 7 days",
+  "date.last30": "Last 30 days",
+  "date.last90": "Last 90 days",
+  "date.thisMonth": "This month",
+  "date.lastMonth": "Last month",
+  "date.ytd": "Year to date",
+  "date.cancel": "Cancel",
+  "date.apply": "Apply",
+  "date.selectEnd": "Select an end date",
+
+  "dashboard.placeholder": "Dashboard content",
+  "report.button": "Report",
+
+  "account.title": "Account",
+  "account.workspaceContext": "Workspace context",
+  "account.department": "Department",
+  "account.reportingPeriod": "Reporting period",
+  "account.dataReadiness": "Data readiness",
+  "account.requiredInputs": "Required inputs for {department}",
+  "account.section": "Account",
+  "account.settings": "Account Settings",
+  "account.billing": "Billing",
+  "account.signOut": "Sign Out",
+
+  "file.salesDemand": "Sales Demand",
+  "file.stockLevels": "Stock Levels",
+  "file.uploaded": "Uploaded",
+  "file.missing": "Missing",
+
+  "import.title": "Import data",
+  "import.description": "Upload the files required for {department}.",
+  "import.dropTitle": "Drop files here or browse",
+  "import.dropHint": "CSV or XLSX, up to 25 MB",
+  "import.browse": "Browse files",
+  "import.requiredFiles": "Required files",
+  "import.close": "Close",
+  "import.done": "Done",
+
+  "inaccessible.title": "Not accessible.",
+  "inaccessible.body": "You don't have access to this department.",
+
+  "settings.title": "Settings",
+  "settings.apiKey": "API key",
+  "settings.show": "Show",
+  "settings.hide": "Hide",
+  "settings.copy": "Copy",
+  "settings.copied": "Copied",
+  "settings.darkMode": "Dark mode",
+  "settings.language": "Language",
+  "settings.documentation": "Documentation",
+
+  "docs.title": "Docs",
+  "docs.search": "Search docs",
+  "docs.close": "Close documentation",
+  "docs.onThisPage": "On this page",
+  "docs.previous": "Previous",
+  "docs.next": "Next",
+  "docs.noResults": "No pages match “{query}”.",
+  "docs.copy": "Copy",
+  "docs.copied": "Copied",
+  "docs.toggleTree": "Toggle page tree",
+
+  "reportPanel.title": "Report",
+  "reportPanel.close": "Close report",
+  "reportPanel.steps": "Report steps",
+  "reportPanel.loading": "Generating report…",
+  "reportPanel.export": "Export",
+  "reportPanel.print": "Print",
+  "reportPanel.kpi": "KPI",
+  "reportPanel.data": "Data",
+  "reportPanel.error": "The report could not be generated.",
+} as const;
+
+export type TranslationKey = keyof typeof en;
+
+const fr: Record<TranslationKey, string> = {
+  "brand.name": "NORTHSTAR",
+  "brand.subtitle": "ESPACE FINANCE",
+
+  "nav.section": "Départements",
+  "nav.overview": "Vue d'ensemble",
+  "nav.sales": "Ventes",
+  "nav.production": "Production",
+  "nav.stock": "Stock",
+  "nav.supply": "Approvisionnement",
+  "nav.finance": "Finance",
+  "nav.helpCenter": "Centre d'aide",
+  "nav.settings": "Paramètres",
+  "nav.primary": "Principal",
+
+  "top.dateRange": "Période",
+  "top.vsPrevious": "vs période précédente ({range})",
+  "top.reimport": "Réimporter",
+  "top.notifications": "Notifications",
+  "top.unread": "Vous avez des notifications non lues",
+  "top.openAccount": "Ouvrir le panneau du compte",
+
+  "date.presets": "Raccourcis",
+  "date.last7": "7 derniers jours",
+  "date.last30": "30 derniers jours",
+  "date.last90": "90 derniers jours",
+  "date.thisMonth": "Ce mois-ci",
+  "date.lastMonth": "Mois dernier",
+  "date.ytd": "Depuis le début de l'année",
+  "date.cancel": "Annuler",
+  "date.apply": "Appliquer",
+  "date.selectEnd": "Choisissez une date de fin",
+
+  "dashboard.placeholder": "Contenu du tableau de bord",
+  "report.button": "Rapport",
+
+  "account.title": "Compte",
+  "account.workspaceContext": "Contexte de l'espace",
+  "account.department": "Département",
+  "account.reportingPeriod": "Période de reporting",
+  "account.dataReadiness": "Données disponibles",
+  "account.requiredInputs": "Données requises pour {department}",
+  "account.section": "Compte",
+  "account.settings": "Paramètres du compte",
+  "account.billing": "Facturation",
+  "account.signOut": "Se déconnecter",
+
+  "file.salesDemand": "Demande commerciale",
+  "file.stockLevels": "Niveaux de stock",
+  "file.uploaded": "Importé",
+  "file.missing": "Manquant",
+
+  "import.title": "Importer des données",
+  "import.description": "Importez les fichiers requis pour {department}.",
+  "import.dropTitle": "Déposez vos fichiers ici ou parcourez",
+  "import.dropHint": "CSV ou XLSX, jusqu'à 25 Mo",
+  "import.browse": "Parcourir",
+  "import.requiredFiles": "Fichiers requis",
+  "import.close": "Fermer",
+  "import.done": "Terminé",
+
+  "inaccessible.title": "Accès impossible.",
+  "inaccessible.body": "Vous n'avez pas accès à ce département.",
+
+  "settings.title": "Paramètres",
+  "settings.apiKey": "Clé API",
+  "settings.show": "Afficher",
+  "settings.hide": "Masquer",
+  "settings.copy": "Copier",
+  "settings.copied": "Copiée",
+  "settings.darkMode": "Mode sombre",
+  "settings.language": "Langue",
+  "settings.documentation": "Documentation",
+
+  "docs.title": "Docs",
+  "docs.search": "Rechercher",
+  "docs.close": "Fermer la documentation",
+  "docs.onThisPage": "Sur cette page",
+  "docs.previous": "Précédent",
+  "docs.next": "Suivant",
+  "docs.noResults": "Aucune page ne correspond à « {query} ».",
+  "docs.copy": "Copier",
+  "docs.copied": "Copié",
+  "docs.toggleTree": "Afficher/masquer l'arborescence",
+
+  "reportPanel.title": "Rapport",
+  "reportPanel.close": "Fermer le rapport",
+  "reportPanel.steps": "Étapes du rapport",
+  "reportPanel.loading": "Génération du rapport…",
+  "reportPanel.export": "Exporter",
+  "reportPanel.print": "Imprimer",
+  "reportPanel.kpi": "KPI",
+  "reportPanel.data": "Données",
+  "reportPanel.error": "Le rapport n'a pas pu être généré.",
+};
+
+export const DICTIONARY: Record<Language, Record<TranslationKey, string>> = { en, fr };
+
+export function translate(
+  language: Language,
+  key: TranslationKey,
+  vars?: Record<string, string | number>,
+): string {
+  const template = DICTIONARY[language][key] ?? DICTIONARY.en[key];
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
+}
