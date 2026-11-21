@@ -1,9 +1,75 @@
 import { useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { ArrowUpRight, Check, X } from "lucide-react";
 
-import { useT } from "@/i18n/I18nProvider";
+import { PLANS, type BillingPeriod, type Plan } from "@/config/pricing";
+import { useLanguage, useT } from "@/i18n/I18nProvider";
 import { cn } from "@/lib/utils";
+
+type Translate = ReturnType<typeof useT>;
+
+function PlanCard({
+  plan,
+  period,
+  t,
+  formatNumber,
+}: {
+  plan: Plan;
+  period: BillingPeriod;
+  t: Translate;
+  formatNumber: (value: number) => string;
+}) {
+  const name = t(plan.nameKey);
+  const parent = plan.extendsPlan ? PLANS.find((p) => p.id === plan.extendsPlan) : undefined;
+  const price = period === "monthly" ? plan.monthlyPrice : plan.annualPrice;
+
+  return (
+    <section
+      aria-labelledby={`plan-${plan.id}-name`}
+      className={cn(
+        "flex flex-col rounded-xl border bg-card p-5 shadow-card",
+        plan.highlighted && "border-ring ring-2 ring-ring",
+      )}
+    >
+      {plan.highlighted && (
+        <span className="mb-2 inline-flex w-fit rounded-pill bg-tag-kpi px-3 py-1 text-xs font-medium text-tag-kpi-foreground">
+          {t("billing.popular")}
+        </span>
+      )}
+      <h3 id={`plan-${plan.id}-name`} className="text-xl font-semibold text-foreground">
+        {name}
+      </h3>
+      <p className="mt-1 min-h-[3rem] text-sm text-muted-foreground">{t(plan.descriptionKey)}</p>
+
+      <p className="mt-5 text-3xl font-bold tracking-tight text-foreground">{formatNumber(price)} DZD</p>
+      <p className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground">
+        {period === "monthly"
+          ? t("billing.perMonth")
+          : t("billing.perYear", { monthly: formatNumber(Math.round(plan.annualPrice / 12)) })}
+      </p>
+
+      <button
+        type="button"
+        className="mt-4 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border bg-card text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {t("billing.choose", { plan: name })}
+        <ArrowUpRight className="size-4" aria-hidden />
+      </button>
+
+      <p className="mt-5 text-sm font-semibold text-foreground">
+        {parent ? t("billing.everythingIn", { plan: t(parent.nameKey) }) : t("billing.includes")}
+      </p>
+      <ul className="mt-3 space-y-3">
+        {plan.featureKeys.map((key) => (
+          <li key={key} className="flex items-start gap-3 text-sm text-foreground">
+            <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+            <span>{t(key)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export function BillingOverlay({
   open,
@@ -13,7 +79,10 @@ export function BillingOverlay({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useT();
-  const [period, setPeriod] = useState<"monthly" | "annual">("monthly");
+  const { language } = useLanguage();
+  const [period, setPeriod] = useState<BillingPeriod>("monthly");
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-US").format(value);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -64,11 +133,11 @@ export function BillingOverlay({
             </div>
           </div>
 
-          <img
-            src={period === "monthly" ? "/pricing-mensuel.jpg" : "/pricing-annuel.jpg"}
-            alt={period === "monthly" ? t("billing.monthly") : t("billing.annual")}
-            className="mx-auto block max-h-[calc(92vh-100px)] w-full max-w-[1000px] rounded-lg object-contain"
-          />
+          <div className="grid gap-4 md:grid-cols-3">
+            {PLANS.map((plan) => (
+              <PlanCard key={plan.id} plan={plan} period={period} t={t} formatNumber={formatNumber} />
+            ))}
+          </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
