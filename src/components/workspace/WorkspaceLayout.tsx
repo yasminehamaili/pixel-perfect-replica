@@ -36,7 +36,11 @@ export function WorkspaceLayout({ department }: { department: DepartmentId }) {
         />
         {accessible ? (
           <div className="mx-auto flex w-full max-w-(--layout-main-max) flex-col gap-4 p-(--layout-gutter) pb-24">
-            <DashboardView department={department} onOpenImport={() => setImportOpen(true)} />
+            <DashboardView
+              department={department}
+              onOpenImport={() => setImportOpen(true)}
+              onOpenReport={() => setReportOpen(true)}
+            />
             <div className="flex justify-end">
               <Button variant="toolbar" size="toolbar" onClick={() => setReportOpen(true)}>
                 <FileText aria-hidden />
@@ -61,11 +65,16 @@ export function WorkspaceLayout({ department }: { department: DepartmentId }) {
       {accessible && (
         <>
           <ImportDialog open={importOpen} onOpenChange={setImportOpen} department={department} />
-          <ReportOverlay open={reportOpen} onOpenChange={setReportOpen} department={department} />
+          <ReportOverlay
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+            department={department}
+            onOpenImport={() => setImportOpen(true)}
+          />
           <ChatbotWidget department={department} />
         </>
       )}
       <DocsOverlay open={docsOpen} onOpenChange={setDocsOpen} />
     </div>
   );
-}
+}

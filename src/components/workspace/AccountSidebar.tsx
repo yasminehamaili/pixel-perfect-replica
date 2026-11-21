@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { CreditCard, FileSpreadsheet, LogOut, UserRound } from "lucide-react";
 
 import { MOCK_USER, REQUIRED_FILE_IDS, type DepartmentId } from "@/config/workspace";
 import { useLanguage, useT } from "@/i18n/I18nProvider";
 import { formatRange } from "@/lib/date-range";
 import { cn } from "@/lib/utils";
+import { BillingOverlay } from "./BillingOverlay";
 import { FileStatusBadge } from "./FileStatusBadge";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -14,13 +16,15 @@ export function AccountSidebar({ department, className }: { department: Departme
   const t = useT();
   const { dateLocale } = useLanguage();
   const { dateRange, files } = useWorkspace();
+  const [billingOpen, setBillingOpen] = useState(false);
   const departmentName = t(`nav.${department}`);
 
   return (
-    <aside
-      aria-label={t("account.title")}
-      className={cn("flex w-(--layout-account) shrink-0 flex-col gap-6 overflow-y-auto bg-sidebar px-4 py-5", className)}
-    >
+    <>
+      <aside
+        aria-label={t("account.title")}
+        className={cn("flex w-(--layout-account) shrink-0 flex-col gap-6 overflow-y-auto bg-sidebar px-4 py-5", className)}
+      >
       <div className="flex items-center gap-3">
         <div
           aria-hidden
@@ -66,14 +70,14 @@ export function AccountSidebar({ department, className }: { department: Departme
         </ul>
       </section>
 
-      <section>
+      <section className="mt-auto">
         <h2 className="eyebrow mb-1">{t("account.section")}</h2>
         <div className="flex flex-col">
           <button type="button" className={rowClass}>
             <UserRound className="size-4 text-muted-foreground" aria-hidden />
             {t("account.settings")}
           </button>
-          <button type="button" className={rowClass}>
+          <button type="button" onClick={() => setBillingOpen(true)} className={rowClass}>
             <CreditCard className="size-4 text-muted-foreground" aria-hidden />
             {t("account.billing")}
           </button>
@@ -83,6 +87,8 @@ export function AccountSidebar({ department, className }: { department: Departme
           </button>
         </div>
       </section>
-    </aside>
+      </aside>
+      <BillingOverlay open={billingOpen} onOpenChange={setBillingOpen} />
+    </>
   );
 }

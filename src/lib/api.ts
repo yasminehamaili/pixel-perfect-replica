@@ -84,17 +84,76 @@ export type ChatMessage = {
   content: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API_BASE = import.meta.env["VITE_API_URL"] || "http://localhost:3001/api";
 
-/** Maps frontend route department slugs to the 5 backend schema keys. */
+export const BACKEND_DEPARTMENTS: readonly BackendDepartmentKey[] = [
+  "sales",
+  "production",
+  "stock",
+  "procurement",
+  "finance",
+];
+
+/** Frontend route ids -> backend schema keys. `supply` is called `procurement` by the backend. */
+const ROUTE_TO_BACKEND: Record<string, BackendDepartmentKey | null> = {
+  overview: null,
+  sales: "sales",
+  production: "production",
+  stock: "stock",
+  supply: "procurement",
+  finance: "finance",
+};
+
+/** Backend schema keys -> frontend route ids (used for labels). */
+export const BACKEND_TO_ROUTE = {
+  sales: "sales",
+  production: "production",
+  stock: "stock",
+  procurement: "supply",
+  finance: "finance",
+} as const satisfies Record<BackendDepartmentKey, string>;
+
 export function resolveBackendDepartment(department: string): BackendDepartmentKey | null {
   const d = department.toLowerCase();
-  if (d.includes("sale") || d.includes("vente") || d.includes("commercial")) return "sales";
-  if (d.includes("prod") || d.includes("manufact") || d.includes("ops")) return "production";
-  if (d.includes("stock") || d.includes("invent") || d.includes("warehous")) return "stock";
-  if (d.includes("procur") || d.includes("purchas") || d.includes("supply") || d.includes("achat")) return "procurement";
-  if (d.includes("financ") || d.includes("account") || d.includes("compta")) return "finance";
-  return null;
+  if (d in ROUTE_TO_BACKEND) return ROUTE_TO_BACKEND[d] ?? null;
+  return (BACKEND_DEPARTMENTS as readonly string[]).includes(d) ? (d as BackendDepartmentKey) : null;
+}
+
+const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+
+/**
+ * The LLM output is not guaranteed to match the schema (missing arrays, null departments).
+ * Fill in safe defaults once, so every view can read `.kpis.length` etc. without crashing.
+ */
+export function normalizeDashboard(raw: DashboardData): DashboardData {
+  const departments = {} as Record<BackendDepartmentKey, DepartmentData>;
+  for (const key of BACKEND_DEPARTMENTS) {
+    const d = (raw?.departments?.[key] ?? {}) as Partial<DepartmentData>;
+    departments[key] = {
+      kpis: asArray<DashboardKpi>(d.kpis),
+      charts: asArray<DashboardChart>(d.charts).map((c) => ({
+        ...c,
+        type: c.type ?? "bar",
+        series: asArray<ChartSeries>(c.series).map((s) => ({ ...s, data: asArray(s.data) })),
+      })),
+      insights: asArray<string>(d.insights),
+      data_gaps: asArray<string>(d.data_gaps),
+    };
+  }
+  return {
+    ...raw,
+    document_title: raw?.document_title ?? "",
+    document_date: raw?.document_date ?? null,
+    reporting_period: raw?.reporting_period ?? null,
+    currency: raw?.currency ?? null,
+    summary: raw?.summary ?? "",
+    departments,
+    cross_department: {
+      kpis: asArray<DashboardKpi>(raw?.cross_department?.kpis),
+      insights: asArray<string>(raw?.cross_department?.insights),
+    },
+    risks_or_alerts: asArray<NonNullable<DashboardData["risks_or_alerts"]>[number]>(raw?.risks_or_alerts),
+  };
 }
 
 export async function uploadDocument(file: File): Promise<UploadedDocument> {
@@ -110,13 +169,21 @@ export async function uploadDocument(file: File): Promise<UploadedDocument> {
   if (!res.ok) {
     throw new Error(data.error || `Upload failed (${res.status})`);
   }
-  return data as UploadedDocument;
+  const uploaded = data as UploadedDocument;
+  return { ...uploaded, dashboard: normalizeDashboard(uploaded.dashboard) };
 }
+
+export type GeneratedReports = {
+  reports: Record<string, string>;
+  news: NewsArticle[];
+  /** Backend keys of departments whose report failed (the others still succeeded). */
+  errors?: Record<string, string>;
+};
 
 export async function generateReports(
   docId: string,
   industry = "beverage industry",
-): Promise<{ reports: Record<string, string>; news: NewsArticle[] }> {
+): Promise<GeneratedReports> {
   const res = await fetch(`${API_BASE}/documents/${docId}/reports`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -127,7 +194,11 @@ export async function generateReports(
   if (!res.ok) {
     throw new Error(data.error || `Report generation failed (${res.status})`);
   }
-  return data;
+  return {
+    reports: data.reports && typeof data.reports === "object" ? data.reports : {},
+    news: Array.isArray(data.news) ? data.news : [],
+    errors: data.errors && typeof data.errors === "object" ? data.errors : {},
+  };
 }
 
 export async function sendChatMessage(
@@ -146,4 +217,4 @@ export async function sendChatMessage(
     throw new Error(data.error || `Chat request failed (${res.status})`);
   }
   return data.answer as string;
-}
+}

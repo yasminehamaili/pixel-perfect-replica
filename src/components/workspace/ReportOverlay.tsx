@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
-import { Download, Printer, X } from "lucide-react";
+import { Download, FileUp, Loader2, Printer, X } from "lucide-react";
 
+import { Markdown } from "@/components/docs/Markdown";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DepartmentId } from "@/config/workspace";
+import type { TranslationKey } from "@/i18n/dictionary";
 import { useLanguage, useT } from "@/i18n/I18nProvider";
+import { BACKEND_TO_ROUTE, type BackendDepartmentKey } from "@/lib/api";
 import { formatRange } from "@/lib/date-range";
-import { generateReport, reportFileName, reportToMarkdown, type ReportTag } from "@/lib/report";
+import { buildReport, reportFileName, reportToMarkdown, type ReportTag } from "@/lib/report";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "./WorkspaceProvider";
 
@@ -30,31 +32,49 @@ export function ReportOverlay({
   open,
   onOpenChange,
   department,
+  onOpenImport,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   department: DepartmentId;
+  onOpenImport: () => void;
 }) {
   const t = useT();
-  const { dateLocale } = useLanguage();
-  const { dateRange } = useWorkspace();
+  const { dateLocale, language } = useLanguage();
+  const { dateRange, doc, reports, news, reportsLoading, reportsError, reportErrors, retryReports } = useWorkspace();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeStep, setActiveStep] = useState(0);
 
-  const { data: report, isPending, isError } = useQuery({
-    queryKey: ["report", department, dateRange.from.toISOString(), dateRange.to.toISOString()],
-    queryFn: () => generateReport(department, dateRange),
-    enabled: open,
-    staleTime: 60_000,
-  });
+  const locale = language === "fr" ? "fr-FR" : "en-US";
+  const report = useMemo(
+    () =>
+      doc
+        ? buildReport(
+            {
+              department,
+              dateRange,
+              dashboard: doc.dashboard,
+              reports,
+              news,
+              aiPending: reportsLoading,
+              locale,
+            },
+            t,
+          )
+        : null,
+    [doc, department, dateRange, reports, news, reportsLoading, locale, t],
+  );
 
   const departmentName = t(`nav.${department}`);
   const period = formatRange(dateRange, dateLocale);
   const sections = report?.sections ?? [];
+  const failedDepartments = Object.keys(reportErrors).map((key) =>
+    t(`nav.${BACKEND_TO_ROUTE[key as BackendDepartmentKey] ?? "overview"}` as TranslationKey),
+  );
 
   useEffect(() => {
     if (open) setActiveStep(0);
-  }, [open, report]);
+  }, [open, doc?.id]);
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -64,7 +84,7 @@ export function ReportOverlay({
     nodes.forEach((node, i) => {
       if (node.offsetTop - el.offsetTop - el.scrollTop <= 24) current = i;
     });
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) current = nodes.length - 1;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) current = Math.max(0, nodes.length - 1);
     setActiveStep(current);
   };
 
@@ -85,6 +105,9 @@ export function ReportOverlay({
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Export / Print wait for the AI text so the file is never half empty.
+  const actionsDisabled = !report || reportsLoading;
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -114,15 +137,14 @@ export function ReportOverlay({
             </DialogPrimitive.Close>
           </header>
 
-          <nav aria-label={t("reportPanel.steps")} className="print-hide border-b px-6 py-3">
-            <ol className="flex flex-wrap items-center gap-2">
-              {(isPending ? [0, 1, 2] : sections.map((_, i) => i)).map((i) => {
-                const section = sections[i];
-                const active = i === activeStep;
-                return (
-                  <li key={section?.id ?? i} className="flex items-center gap-2">
-                    {i > 0 && <span aria-hidden className="h-px w-5 bg-border" />}
-                    {section ? (
+          {report && sections.length > 0 && (
+            <nav aria-label={t("reportPanel.steps")} className="print-hide border-b px-6 py-3">
+              <ol className="flex flex-wrap items-center gap-2">
+                {sections.map((section, i) => {
+                  const active = i === activeStep;
+                  return (
+                    <li key={section.id} className="flex items-center gap-2">
+                      {i > 0 && <span aria-hidden className="h-px w-5 bg-border" />}
                       <button
                         type="button"
                         onClick={() => goToStep(i)}
@@ -135,52 +157,108 @@ export function ReportOverlay({
                         </span>
                         <span className="max-w-40 truncate">{section.title}</span>
                       </button>
-                    ) : (
-                      <Skeleton className="h-7 w-28 rounded-pill" />
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+          )}
 
           <div ref={scrollRef} onScroll={onScroll} data-print-scroll className="flex-1 overflow-y-auto px-6 py-5">
-            {isPending && open ? (
-              <div aria-busy="true" aria-label={t("reportPanel.loading")} className="space-y-6">
-                {[0, 1, 2].map((s) => (
-                  <div key={s} className="space-y-3">
-                    <Skeleton className="h-4 w-40" />
-                    {[0, 1].map((r) => (
-                      <div key={r} className="flex items-center gap-3 rounded-lg border p-4">
-                        <Skeleton className="h-5 w-10" />
-                        <Skeleton className="h-4 flex-1" />
-                        <Skeleton className="h-4 w-16" />
-                      </div>
-                    ))}
-                  </div>
-                ))}
+            {!report ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                <p className="max-w-sm text-sm text-muted-foreground">{t("reportPanel.empty")}</p>
+                <Button
+                  onClick={() => {
+                    onOpenChange(false);
+                    onOpenImport();
+                  }}
+                >
+                  <FileUp aria-hidden />
+                  {t("dash.import")}
+                </Button>
               </div>
-            ) : isError ? (
-              <p className="text-sm text-destructive">{t("reportPanel.error")}</p>
             ) : (
               <div className="space-y-7">
+                {reportsLoading && (
+                  <p
+                    role="status"
+                    className="print-hide flex items-center gap-2 rounded-lg border bg-background px-4 py-3 text-sm text-muted-foreground"
+                  >
+                    <Loader2 className="size-4 animate-spin text-foreground" aria-hidden />
+                    {t("reportPanel.generating")}
+                  </p>
+                )}
+
+                {reportsError && (
+                  <div
+                    role="alert"
+                    className="print-hide flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{t("reportPanel.error")}</div>
+                      <div className="mt-0.5 break-words text-xs">{reportsError}</div>
+                    </div>
+                    <Button variant="toolbar" size="sm" onClick={() => void retryReports()}>
+                      {t("reportPanel.retry")}
+                    </Button>
+                  </div>
+                )}
+
+                {!reportsError && failedDepartments.length > 0 && (
+                  <div
+                    role="alert"
+                    className="print-hide flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning"
+                  >
+                    <div className="min-w-0 flex-1">
+                      {t("reportPanel.partial", { departments: failedDepartments.join(", ") })}
+                    </div>
+                    <Button variant="toolbar" size="sm" onClick={() => void retryReports()}>
+                      {t("reportPanel.retry")}
+                    </Button>
+                  </div>
+                )}
+
                 {sections.map((section) => (
                   <section key={section.id} data-report-section aria-labelledby={`report-${section.id}`}>
                     <h3 id={`report-${section.id}`} className="eyebrow mb-3">
                       {section.title}
                     </h3>
-                    <ul className="space-y-2">
-                      {section.rows.map((row) => (
-                        <li key={row.id} className="flex items-start gap-3 rounded-lg border bg-background p-4">
-                          <Tag tag={row.tag} />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium">{row.label}</div>
-                            {row.detail && <p className="mt-1 text-sm text-muted-foreground">{row.detail}</p>}
+
+                    {section.pending && (
+                      <div aria-busy="true" aria-label={t("reportPanel.loading")} className="space-y-2">
+                        {[0, 1].map((r) => (
+                          <div key={r} className="flex items-center gap-3 rounded-lg border p-4">
+                            <Skeleton className="h-5 w-10" />
+                            <Skeleton className="h-4 flex-1" />
+                            <Skeleton className="h-4 w-16" />
                           </div>
-                          <div className="shrink-0 text-sm font-semibold tabular-nums">{row.value}</div>
-                        </li>
-                      ))}
-                    </ul>
+                        ))}
+                      </div>
+                    )}
+
+                    {section.rows.length > 0 && (
+                      <ul className="space-y-2">
+                        {section.rows.map((row) => (
+                          <li key={row.id} className="flex items-start gap-3 rounded-lg border bg-background p-4">
+                            <Tag tag={row.tag} />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium">{row.label}</div>
+                              {row.detail && <p className="mt-1 text-sm text-muted-foreground">{row.detail}</p>}
+                            </div>
+                            {row.value && (
+                              <div className="shrink-0 text-sm font-semibold tabular-nums">{row.value}</div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {section.body && (
+                      <div className="rounded-lg border bg-background px-5 py-1 text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                        <Markdown content={section.body} />
+                      </div>
+                    )}
                   </section>
                 ))}
               </div>
@@ -188,11 +266,11 @@ export function ReportOverlay({
           </div>
 
           <footer className="print-hide flex justify-end gap-2 border-t px-6 py-4">
-            <Button variant="toolbar" size="toolbar" onClick={exportMarkdown} disabled={!report}>
+            <Button variant="toolbar" size="toolbar" onClick={exportMarkdown} disabled={actionsDisabled}>
               <Download aria-hidden />
               {t("reportPanel.export")}
             </Button>
-            <Button size="toolbar" onClick={() => window.print()} disabled={!report}>
+            <Button size="toolbar" onClick={() => window.print()} disabled={actionsDisabled}>
               <Printer aria-hidden />
               {t("reportPanel.print")}
             </Button>

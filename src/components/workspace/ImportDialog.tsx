@@ -46,9 +46,11 @@ export function ImportDialog({
       }
     }
 
-    // Send the first uploaded file to the backend LLM extraction pipeline
+    // Send the first file the backend can read to the LLM extraction pipeline
+    const analyzable = fileArray.find((f) => /\.(pdf|docx|txt|csv|md)$/i.test(f.name));
+    if (!analyzable) return;
     try {
-      await uploadAndAnalyze(fileArray[0]);
+      await uploadAndAnalyze(analyzable);
     } catch {
       // Error is displayed via uploadError in workspace state
     }
@@ -91,10 +93,10 @@ export function ImportDialog({
           </div>
           <div>
             <div className="text-sm font-medium">
-              {uploading ? "Analyzing document with AI..." : t("import.dropTitle")}
+              {uploading ? t("import.analyzing") : t("import.dropTitle")}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              Supported: PDF, DOCX, CSV, TXT, MD (max 20 MB)
+              {t("import.dropHint")}
             </div>
           </div>
           {!uploading && (
@@ -117,18 +119,22 @@ export function ImportDialog({
         </label>
 
         {uploadError && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            <AlertCircle className="size-4 shrink-0" />
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            <AlertCircle className="size-4 shrink-0" aria-hidden />
             <span>{uploadError}</span>
           </div>
         )}
 
         {doc && !uploading && !uploadError && (
-          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
-            <CheckCircle2 className="size-4 shrink-0" />
-            <span>
-              Analyzed <strong>{doc.filename}</strong> — dashboard is ready.
-            </span>
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-lg border border-success/30 bg-success-soft px-3 py-2 text-sm text-success"
+          >
+            <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+            <span>{t("import.analyzed", { file: doc.filename })}</span>
           </div>
         )}
 
@@ -153,4 +159,4 @@ export function ImportDialog({
       </DialogContent>
     </Dialog>
   );
-}
+}

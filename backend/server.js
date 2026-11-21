@@ -56,26 +56,49 @@ app.post("/api/documents/:id/reports", async (req, res) => {
     doc.news = news;
     const newsText = formatNews(news);
 
-    const entries = await Promise.all(
-      Object.entries(FIELDS).map(async ([key, field]) => {
-        const report = await chat([
-          { role: "system", content: REPORT_SYSTEM },
-          {
-            role: "user",
-            content:
-              `Write the "${field.title}" report.\nFocus areas: ${field.focus}\n\n` +
-              `Department KPIs (JSON):\n${JSON.stringify(doc.dashboard.departments?.[key] ?? {})}\n\n` +
-              `Cross-department KPIs (JSON):\n${JSON.stringify(doc.dashboard.cross_department ?? {})}\n\n` +
-              `Document text:\n${clip(doc.text)}\n\n` +
-              `Recent news (market context):\n${newsText}`
-          }
-        ]);
-        return [key, report];
-      })
-    );
+    // One failing department must not lose the other four: settle every request, retry once.
+    const keys = Object.keys(FIELDS);
+    const writeReport = async (key) => {
+      const field = FIELDS[key];
+      const messages = [
+        { role: "system", content: REPORT_SYSTEM },
+        {
+          role: "user",
+          content:
+            `Write the "${field.title}" report.\nFocus areas: ${field.focus}\n\n` +
+            `Department KPIs (JSON):\n${JSON.stringify(doc.dashboard.departments?.[key] ?? {})}\n\n` +
+            `Cross-department KPIs (JSON):\n${JSON.stringify(doc.dashboard.cross_department ?? {})}\n\n` +
+            `Document text:\n${clip(doc.text)}\n\n` +
+            `Recent news (market context):\n${newsText}`
+        }
+      ];
+      try {
+        return await chat(messages);
+      } catch (err) {
+        console.warn(`Report "${key}" failed (${err.message}), retrying once.`);
+        return await chat(messages);
+      }
+    };
 
-    doc.reports = Object.fromEntries(entries);
-    res.json({ reports: doc.reports, news });
+    const settled = await Promise.allSettled(keys.map(writeReport));
+    const reports = {};
+    const errors = {};
+    settled.forEach((result, i) => {
+      const key = keys[i];
+      if (result.status === "fulfilled" && result.value?.trim()) {
+        reports[key] = result.value;
+      } else {
+        errors[key] = result.status === "rejected" ? result.reason?.message || "Report failed" : "Empty report";
+        console.error(`Report "${key}" failed:`, errors[key]);
+      }
+    });
+
+    if (Object.keys(reports).length === 0) {
+      return res.status(502).json({ error: `Report generation failed: ${Object.values(errors)[0]}` });
+    }
+
+    doc.reports = reports;
+    res.json({ reports, news, errors });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
