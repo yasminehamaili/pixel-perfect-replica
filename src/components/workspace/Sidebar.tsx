@@ -21,18 +21,11 @@ export function Sidebar({
   return (
     <aside className="sticky top-0 flex h-screen w-(--layout-sidebar) shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-(--layout-topbar) items-center gap-3 px-5">
-        <div
-          aria-hidden
-          className="flex size-(--layout-logo) items-center justify-center rounded-md bg-primary text-base font-bold text-primary-foreground"
-        >
-          N
-        </div>
-        <div className="leading-tight">
-          <div className="text-sm font-bold tracking-[0.12em]">{t("brand.name")}</div>
-          <div className="text-[10px] font-medium tracking-[0.14em] text-muted-foreground">
-            {t("brand.subtitle")}
-          </div>
-        </div>
+        <img
+          src="/../public/equilibre-logo.svg"
+          alt={t("brand.name")}
+          className="h-10 w-auto max-w-[210px]"
+        />
       </div>
 
       <nav aria-label={t("nav.primary")} className="flex-1 overflow-y-auto px-3 pt-4">

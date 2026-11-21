@@ -47,6 +47,10 @@ const en = {
   "account.settings": "Account Settings",
   "account.billing": "Billing",
   "account.signOut": "Sign Out",
+  "billing.title": "Plans and billing",
+  "billing.close": "Close billing",
+  "billing.monthly": "Monthly",
+  "billing.annual": "Annual - 2 months free",
 
   "file.salesDemand": "Sales Demand",
   "file.stockLevels": "Stock Levels",
@@ -145,6 +149,10 @@ const fr: Record<TranslationKey, string> = {
   "account.settings": "Paramètres du compte",
   "account.billing": "Facturation",
   "account.signOut": "Se déconnecter",
+  "billing.title": "Forfaits et facturation",
+  "billing.close": "Fermer la facturation",
+  "billing.monthly": "Mensuel",
+  "billing.annual": "Annuel · 2 mois offerts",
 
   "file.salesDemand": "Demande commerciale",
   "file.stockLevels": "Niveaux de stock",
